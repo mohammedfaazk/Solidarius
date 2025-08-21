@@ -1,0 +1,24 @@
+name = "mannmitra-api"
+main = "src/index.ts"
+compatibility_date = "2024-08-01"
+
+[env.production]
+name = "mannmitra-api"
+
+[env.development]
+name = "mannmitra-api-dev"
+
+# Environment variables (add your actual keys in Wrangler secrets)
+[vars]
+ENVIRONMENT = "development"
+
+# KV namespaces for caching
+# [[kv_namespaces]]
+# binding = "CACHE"
+# id = "your-kv-namespace-id"
+
+# D1 databases
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "mannmitra-db"
+# database_id = "your-d1-database-id"

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en-IN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    
+    <!-- Primary Meta Tags -->
+    <title>MannMitra X - Mental Wellness Companion</title>
+    <meta name="title" content="MannMitra X - Mental Wellness Companion" />
+    <meta name="description" content="Privacy-first mental wellness PWA for Indian youth. AI companion, mood tracking, CBT skills, and safe peer support - all in your browser." />
+    <meta name="keywords" content="mental health, wellness, CBT, mood tracking, AI companion, privacy, India" />
+    <meta name="author" content="MannMitra Team" />
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#f97316" />
+    <meta name="background-color" content="#f97316" />
+    <meta name="display" content="standalone" />
+    <meta name="orientation" content="portrait-primary" />
+    
+    <!-- Apple PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="MannMitra X" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+    <link rel="shortcut icon" href="/icon-192.png" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://mannmitra.app/" />
+    <meta property="og:title" content="MannMitra X - Mental Wellness Companion" />
+    <meta property="og:description" content="Privacy-first mental wellness PWA for Indian youth with AI companion, mood tracking, and peer support." />
+    <meta property="og:image" content="/og-image.png" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://mannmitra.app/" />
+    <meta property="twitter:title" content="MannMitra X - Mental Wellness Companion" />
+    <meta property="twitter:description" content="Privacy-first mental wellness PWA for Indian youth with AI companion, mood tracking, and peer support." />
+    <meta property="twitter:image" content="/og-image.png" />
+    
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://commentanalyzer.googleapis.com https://api.huggingface.co; media-src 'self' blob:; worker-src 'self' blob:;" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    
+    <!-- Permissions Policy -->
+    <meta http-equiv="Permissions-Policy" content="microphone=(), camera=(), geolocation=(), payment=()" />
+    
+    <!-- Preload Critical Resources -->
+    <link rel="preload" href="/src/main.tsx" as="script" />
+    <link rel="dns-prefetch" href="//commentanalyzer.googleapis.com" />
+    <link rel="dns-prefetch" href="//api.huggingface.co" />
+    
+    <!-- No-JS Fallback -->
+    <noscript>
+      <style>
+        .no-js-message {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-height: 100vh;
+          text-align: center;
+          padding: 2rem;
+          background: linear-gradient(135deg, #f97316, #3b82f6);
+          color: white;
+          font-family: system-ui, sans-serif;
+        }
+      </style>
+    </noscript>
+  </head>
+  <body>
+    <div id="root"></div>
+    
+    <!-- No-JS Fallback -->
+    <noscript>
+      <div class="no-js-message">
+        <h1>🌟 MannMitra X</h1>
+        <p>This app requires JavaScript to function properly.</p>
+        <p>Please enable JavaScript in your browser settings and refresh the page.</p>
+      </div>
+    </noscript>
+    
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
