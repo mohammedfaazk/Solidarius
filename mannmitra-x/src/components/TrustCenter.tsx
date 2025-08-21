@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useConsent } from '../hooks/useConsent';
+import jsPDF from 'jspdf';
 
 interface TrustCenterProps {
   userId: string;
@@ -22,22 +23,143 @@ export const TrustCenter: React.FC<TrustCenterProps> = ({ userId }) => {
       setIsExporting(true);
       const data = await exportData();
       
-      // Create and download JSON file
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `mannmitra-data-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Generate PDF report
+      await generatePDFReport(data);
     } catch (error) {
       console.error('Export failed:', error);
       alert('Failed to export data. Please try again.');
     } finally {
       setIsExporting(false);
     }
+  };
+
+  const generatePDFReport = async (data: any) => {
+    const pdf = new jsPDF();
+    const pageWidth = pdf.internal.pageSize.width;
+    const margin = 20;
+    let yPosition = margin;
+
+    // Helper function to add text with word wrapping
+    const addWrappedText = (text: string, maxWidth: number) => {
+      const lines = pdf.splitTextToSize(text, maxWidth);
+      pdf.text(lines, margin, yPosition);
+      yPosition += lines.length * 7;
+      return lines.length;
+    };
+
+    // Helper function to check if we need a new page
+    const checkNewPage = () => {
+      if (yPosition > pdf.internal.pageSize.height - 30) {
+        pdf.addPage();
+        yPosition = margin;
+      }
+    };
+
+    // Title
+    pdf.setFontSize(20);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('MannMitra - Personal Data Export', margin, yPosition);
+    yPosition += 15;
+
+    // Export info
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'normal');
+    addWrappedText(`Export Date: ${new Date().toLocaleDateString()}`, pageWidth - 2 * margin);
+    addWrappedText(`Export Time: ${new Date().toLocaleTimeString()}`, pageWidth - 2 * margin);
+    yPosition += 10;
+
+    // User Information
+    if (data.user) {
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
+      addWrappedText('User Information', pageWidth - 2 * margin);
+      yPosition += 5;
+
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'normal');
+      addWrappedText(`User ID: ${data.user.uid}`, pageWidth - 2 * margin);
+      addWrappedText(`Created: ${new Date(data.user.createdAt).toLocaleDateString()}`, pageWidth - 2 * margin);
+      addWrappedText(`Locale: ${data.user.locale}`, pageWidth - 2 * margin);
+      
+      // Device capabilities
+      const deviceCaps = Object.entries(data.user.deviceCaps)
+        .map(([key, value]) => `${key}: ${value ? 'Yes' : 'No'}`)
+        .join(', ');
+      addWrappedText(`Device Capabilities: ${deviceCaps}`, pageWidth - 2 * margin);
+      
+      // Consent settings
+      const consents = Object.entries(data.user.consents)
+        .map(([key, value]) => `${key}: ${value ? 'Enabled' : 'Disabled'}`)
+        .join(', ');
+      addWrappedText(`Privacy Settings: ${consents}`, pageWidth - 2 * margin);
+      yPosition += 10;
+    }
+
+    // Journal Entries
+    if (data.journalEntries && data.journalEntries.length > 0) {
+      checkNewPage();
+      
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
+      addWrappedText('Journal Entries', pageWidth - 2 * margin);
+      yPosition += 5;
+
+      data.journalEntries.forEach((entry: any, index: number) => {
+        checkNewPage();
+        
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        addWrappedText(`Entry ${index + 1}`, pageWidth - 2 * margin);
+        
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        addWrappedText(`Date: ${new Date(entry.timestamp).toLocaleDateString()}`, pageWidth - 2 * margin);
+        addWrappedText(`Type: ${entry.type}`, pageWidth - 2 * margin);
+        
+        if (entry.moodScore) {
+          addWrappedText(`Mood Score: ${entry.moodScore}/5`, pageWidth - 2 * margin);
+        }
+        
+        if (entry.tags && entry.tags.length > 0) {
+          addWrappedText(`Tags: ${entry.tags.join(', ')}`, pageWidth - 2 * margin);
+        }
+        
+        if (entry.note_redacted) {
+          addWrappedText(`Note: ${entry.note_redacted}`, pageWidth - 2 * margin);
+        }
+        
+        if (entry.thoughtRecord) {
+          const tr = entry.thoughtRecord;
+          addWrappedText(`Situation: ${tr.situation}`, pageWidth - 2 * margin);
+          addWrappedText(`Automatic Thought: ${tr.automaticThought}`, pageWidth - 2 * margin);
+          addWrappedText(`Emotion Intensity: ${tr.emotionIntensity}/10`, pageWidth - 2 * margin);
+          addWrappedText(`Evidence For: ${tr.evidenceFor}`, pageWidth - 2 * margin);
+          addWrappedText(`Evidence Against: ${tr.evidenceAgainst}`, pageWidth - 2 * margin);
+          addWrappedText(`Balanced Thought: ${tr.balancedThought}`, pageWidth - 2 * margin);
+          addWrappedText(`Action: ${tr.action}`, pageWidth - 2 * margin);
+        }
+        
+        yPosition += 8;
+      });
+    } else {
+      checkNewPage();
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'italic');
+      addWrappedText('No journal entries found.', pageWidth - 2 * margin);
+    }
+
+    // Footer
+    const totalPages = pdf.internal.pages.length - 1;
+    for (let i = 1; i <= totalPages; i++) {
+      pdf.setPage(i);
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`Generated by MannMitra - Page ${i} of ${totalPages}`, margin, pdf.internal.pageSize.height - 10);
+    }
+
+    // Save the PDF
+    const fileName = `mannmitra-data-export-${new Date().toISOString().split('T')[0]}.pdf`;
+    pdf.save(fileName);
   };
 
   const handleDeleteData = async () => {
@@ -211,7 +333,7 @@ export const TrustCenter: React.FC<TrustCenterProps> = ({ userId }) => {
           <div className="border border-gray-200 rounded-lg p-4">
             <h4 className="font-medium text-gray-800 mb-2">Export Your Data</h4>
             <p className="text-gray-600 text-sm mb-4">
-              Download all your data in JSON format. Includes journal entries, mood logs, and settings.
+              Download all your data as a readable PDF report. Includes journal entries, mood logs, and settings.
             </p>
             <button
               onClick={handleExportData}

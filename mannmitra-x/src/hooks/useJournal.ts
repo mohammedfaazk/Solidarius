@@ -2,8 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import type { JournalEntry } from '../types';
 import { storageAPI } from '../lib/storage';
 import { redactPII } from '../lib/redact';
+import { useConsent } from './useConsent';
 
 export function useJournal(userId: string) {
+  const { consents } = useConsent(userId);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,8 +39,31 @@ export function useJournal(userId: string) {
         note_redacted: entryData.note_redacted ? redactPII(entryData.note_redacted) : undefined,
       };
 
+      // Always save locally
       await storageAPI.saveJournalEntry(entry);
       setEntries(prev => [entry, ...prev]);
+      
+      // Save to cloud only if user has consented to cloud storage
+      if (consents.storeJournal) {
+        try {
+          await fetch('/api/journal', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              uid: userId,
+              type: entry.type,
+              moodScore: entry.moodScore,
+              tags: entry.tags,
+              note: entry.note_redacted,
+              thoughtRecord: entry.thoughtRecord,
+              timestamp: entry.timestamp
+            }),
+          });
+        } catch (cloudError) {
+          console.warn('Failed to save to cloud, but local save succeeded:', cloudError);
+          // Don't throw error - local save is primary
+        }
+      }
       
       return entry;
     } catch (err) {
@@ -46,7 +71,7 @@ export function useJournal(userId: string) {
       console.error('Error saving journal entry:', err);
       throw err;
     }
-  }, [userId]);
+  }, [userId, consents.storeJournal]);
 
   const getMoodEntries = useCallback((days?: number) => {
     let moodEntries = entries.filter(entry => entry.type === 'mood');

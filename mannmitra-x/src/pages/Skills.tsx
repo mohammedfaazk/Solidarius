@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ThoughtRecordForm } from '../components/ThoughtRecordForm';
 import { useJournal } from '../hooks/useJournal';
+import { useTTS } from '../hooks/useTTS';
 
 // For demo, using a static user ID
 const DEMO_USER_ID = 'anon_demo_user';
@@ -201,6 +202,8 @@ const BreathingExercise: React.FC<{ onComplete: () => void; onCancel: () => void
   const [phase, setPhase] = useState<'inhale' | 'hold' | 'exhale' | 'ready'>('ready');
   const [cycle, setCycle] = useState(0);
   const [isActive, setIsActive] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const { speak, isSupported: ttsSupported } = useTTS();
 
   const startExercise = () => {
     setIsActive(true);
@@ -210,21 +213,33 @@ const BreathingExercise: React.FC<{ onComplete: () => void; onCancel: () => void
   const runBreathingCycle = () => {
     // Inhale for 4 seconds
     setPhase('inhale');
+    if (voiceEnabled && ttsSupported) {
+      speak('Breathe in slowly');
+    }
     setTimeout(() => {
       // Hold for 4 seconds
       setPhase('hold');
+      if (voiceEnabled && ttsSupported) {
+        speak('Hold your breath');
+      }
       setTimeout(() => {
         // Exhale for 6 seconds
         setPhase('exhale');
+        if (voiceEnabled && ttsSupported) {
+          speak('Breathe out slowly');
+        }
         setTimeout(() => {
           setCycle(prev => {
             const newCycle = prev + 1;
             if (newCycle >= 6) {
               setIsActive(false);
               setPhase('ready');
+              if (voiceEnabled && ttsSupported) {
+                setTimeout(() => speak('Well done! You have completed the breathing exercise.'), 500);
+              }
               return 0;
             } else {
-              runBreathingCycle();
+              setTimeout(() => runBreathingCycle(), 1000); // Brief pause between cycles
               return newCycle;
             }
           });
@@ -236,9 +251,27 @@ const BreathingExercise: React.FC<{ onComplete: () => void; onCancel: () => void
   return (
     <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg border border-gray-200 p-8 text-center">
       <h2 className="text-2xl font-bold text-gray-800 mb-4">Deep Breathing Exercise</h2>
-      <p className="text-gray-600 mb-8">
+      <p className="text-gray-600 mb-4">
         Follow the visual guide to practice 4-4-6 breathing (inhale-hold-exhale)
       </p>
+      
+      {/* Voice Toggle */}
+      {ttsSupported && (
+        <div className="flex items-center justify-center gap-2 mb-6">
+          <span className="text-sm text-gray-600">Voice guidance:</span>
+          <button
+            onClick={() => setVoiceEnabled(!voiceEnabled)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              voiceEnabled ? 'bg-blue-500' : 'bg-gray-300'
+            }`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              voiceEnabled ? 'translate-x-6' : 'translate-x-1'
+            }`} />
+          </button>
+          <span className="text-sm text-gray-600">{voiceEnabled ? 'On' : 'Off'}</span>
+        </div>
+      )}
 
       <div className="mb-8">
         <div className={`
@@ -308,13 +341,14 @@ const GroundingExercise: React.FC<{ onComplete: () => void; onCancel: () => void
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [responses, setResponses] = useState<string[]>(['', '', '', '', '']);
+  const [isCompleted, setIsCompleted] = useState(false);
 
   const steps = [
-    { sense: 'See', count: 5, prompt: 'Name 5 things you can see around you' },
-    { sense: 'Touch', count: 4, prompt: 'Name 4 things you can touch' },
-    { sense: 'Hear', count: 3, prompt: 'Name 3 things you can hear' },
-    { sense: 'Smell', count: 2, prompt: 'Name 2 things you can smell' },
-    { sense: 'Taste', count: 1, prompt: 'Name 1 thing you can taste' },
+    { sense: 'See', count: 5, prompt: 'Name 5 things you can see around you', emoji: '👁️', color: 'blue' },
+    { sense: 'Touch', count: 4, prompt: 'Name 4 things you can touch', emoji: '✋', color: 'green' },
+    { sense: 'Hear', count: 3, prompt: 'Name 3 things you can hear', emoji: '👂', color: 'purple' },
+    { sense: 'Smell', count: 2, prompt: 'Name 2 things you can smell', emoji: '👃', color: 'orange' },
+    { sense: 'Taste', count: 1, prompt: 'Name 1 thing you can taste', emoji: '👅', color: 'red' },
   ];
 
   const updateResponse = (value: string) => {
@@ -327,7 +361,8 @@ const GroundingExercise: React.FC<{ onComplete: () => void; onCancel: () => void
     if (currentStep < steps.length - 1) {
       setCurrentStep(prev => prev + 1);
     } else {
-      onComplete();
+      setIsCompleted(true);
+      setTimeout(() => onComplete(), 2000);
     }
   };
 
@@ -336,6 +371,31 @@ const GroundingExercise: React.FC<{ onComplete: () => void; onCancel: () => void
   };
 
   const currentStepData = steps[currentStep];
+
+  if (isCompleted) {
+    return (
+      <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg border border-gray-200 p-8 text-center">
+        <div className="mb-6">
+          <div className="text-6xl mb-4 animate-bounce">🎉</div>
+          <h2 className="text-2xl font-bold text-green-600 mb-2">Exercise Complete!</h2>
+          <p className="text-gray-600">
+            Great job! You've successfully completed the 5-4-3-2-1 grounding exercise.
+          </p>
+        </div>
+        
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+          <p className="text-green-700 text-sm">
+            You used all five senses to ground yourself in the present moment. 
+            This technique can help reduce anxiety and bring you back to the here and now.
+          </p>
+        </div>
+        
+        <div className="text-sm text-gray-500">
+          Redirecting you back to skills...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg border border-gray-200 p-8">
@@ -351,20 +411,23 @@ const GroundingExercise: React.FC<{ onComplete: () => void; onCancel: () => void
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
-            className="bg-primary-500 h-2 rounded-full transition-all duration-300"
+            className={`h-2 rounded-full transition-all duration-500 ${
+              currentStepData.color === 'blue' ? 'bg-blue-500' :
+              currentStepData.color === 'green' ? 'bg-green-500' :
+              currentStepData.color === 'purple' ? 'bg-purple-500' :
+              currentStepData.color === 'orange' ? 'bg-orange-500' :
+              'bg-red-500'
+            }`}
             style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
           />
         </div>
       </div>
 
       <div className="text-center mb-8">
-        <div className="text-4xl mb-4">
-          {currentStep === 0 ? '👁️' :
-           currentStep === 1 ? '✋' :
-           currentStep === 2 ? '👂' :
-           currentStep === 3 ? '👃' : '👅'}
+        <div className={`text-6xl mb-4 transition-all duration-300 transform hover:scale-110`}>
+          {currentStepData.emoji}
         </div>
-        <h3 className="text-xl font-semibold text-gray-800 mb-2">
+        <h3 className="text-xl font-semibold text-gray-800 mb-2 animate-fadeIn">
           {currentStepData.prompt}
         </h3>
         
@@ -372,7 +435,13 @@ const GroundingExercise: React.FC<{ onComplete: () => void; onCancel: () => void
           value={responses[currentStep]}
           onChange={(e) => updateResponse(e.target.value)}
           placeholder={`Write down ${currentStepData.count} things you can ${currentStepData.sense.toLowerCase()}...`}
-          className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+          className={`w-full px-3 py-3 border rounded-lg focus:outline-none focus:ring-2 resize-none transition-all duration-200 ${
+            currentStepData.color === 'blue' ? 'focus:ring-blue-500 focus:border-blue-500' :
+            currentStepData.color === 'green' ? 'focus:ring-green-500 focus:border-green-500' :
+            currentStepData.color === 'purple' ? 'focus:ring-purple-500 focus:border-purple-500' :
+            currentStepData.color === 'orange' ? 'focus:ring-orange-500 focus:border-orange-500' :
+            'focus:ring-red-500 focus:border-red-500'
+          } ${responses[currentStep].trim() ? 'border-green-300 bg-green-50' : 'border-gray-300'}`}
           rows={4}
         />
       </div>
@@ -381,14 +450,14 @@ const GroundingExercise: React.FC<{ onComplete: () => void; onCancel: () => void
         <div className="flex gap-2">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
             Cancel
           </button>
           {currentStep > 0 && (
             <button
               onClick={prevStep}
-              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Previous
             </button>
@@ -398,7 +467,13 @@ const GroundingExercise: React.FC<{ onComplete: () => void; onCancel: () => void
         <button
           onClick={nextStep}
           disabled={!responses[currentStep].trim()}
-          className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          className={`px-6 py-2 text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+            currentStepData.color === 'blue' ? 'bg-blue-500 hover:bg-blue-600' :
+            currentStepData.color === 'green' ? 'bg-green-500 hover:bg-green-600' :
+            currentStepData.color === 'purple' ? 'bg-purple-500 hover:bg-purple-600' :
+            currentStepData.color === 'orange' ? 'bg-orange-500 hover:bg-orange-600' :
+            'bg-red-500 hover:bg-red-600'
+          } ${responses[currentStep].trim() ? 'animate-pulse' : ''}`}
         >
           {currentStep === steps.length - 1 ? 'Complete' : 'Next'}
         </button>
@@ -412,6 +487,7 @@ const GratitudeExercise: React.FC<{ onComplete: () => void; onCancel: () => void
   onCancel,
 }) => {
   const [gratitudeItems, setGratitudeItems] = useState(['', '', '']);
+  const [isCompleted, setIsCompleted] = useState(false);
 
   const updateItem = (index: number, value: string) => {
     const newItems = [...gratitudeItems];
@@ -421,6 +497,36 @@ const GratitudeExercise: React.FC<{ onComplete: () => void; onCancel: () => void
 
   const canComplete = gratitudeItems.every(item => item.trim().length > 0);
 
+  const handleComplete = () => {
+    setIsCompleted(true);
+    setTimeout(() => onComplete(), 2000);
+  };
+
+  if (isCompleted) {
+    return (
+      <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg border border-gray-200 p-8 text-center">
+        <div className="mb-6">
+          <div className="text-6xl mb-4 animate-bounce">🙏</div>
+          <h2 className="text-2xl font-bold text-purple-600 mb-2">Gratitude Complete!</h2>
+          <p className="text-gray-600">
+            Wonderful! You've taken time to appreciate the good things in your life.
+          </p>
+        </div>
+        
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
+          <p className="text-purple-700 text-sm">
+            Practicing gratitude regularly has been shown to improve mood, reduce stress, 
+            and increase overall life satisfaction. Keep it up!
+          </p>
+        </div>
+        
+        <div className="text-sm text-gray-500">
+          Redirecting you back to skills...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg border border-gray-200 p-8">
       <h2 className="text-2xl font-bold text-gray-800 mb-4">Gratitude Practice</h2>
@@ -428,35 +534,66 @@ const GratitudeExercise: React.FC<{ onComplete: () => void; onCancel: () => void
         Take a moment to reflect on three things you're grateful for today.
       </p>
 
+      <div className="mb-6">
+        <div className="flex justify-between text-sm text-gray-500 mb-2">
+          <span>Progress</span>
+          <span>{gratitudeItems.filter(item => item.trim()).length}/3 complete</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div
+            className="bg-purple-500 h-2 rounded-full transition-all duration-300"
+            style={{ width: `${(gratitudeItems.filter(item => item.trim()).length / 3) * 100}%` }}
+          />
+        </div>
+      </div>
+
       <div className="space-y-6 mb-8">
-        {gratitudeItems.map((item, index) => (
-          <div key={index}>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              What are you grateful for today? ({index + 1}/3)
-            </label>
-            <textarea
-              value={item}
-              onChange={(e) => updateItem(index, e.target.value)}
-              placeholder="I'm grateful for..."
-              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-              rows={3}
-            />
-          </div>
-        ))}
+        {gratitudeItems.map((item, index) => {
+          const emojis = ['✨', '💝', '🌟'];
+          const colors = ['yellow', 'pink', 'blue'];
+          const color = colors[index];
+          
+          return (
+            <div key={index} className="relative">
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                <span className="text-2xl">{emojis[index]}</span>
+                What are you grateful for today? ({index + 1}/3)
+              </label>
+              <textarea
+                value={item}
+                onChange={(e) => updateItem(index, e.target.value)}
+                placeholder="I'm grateful for..."
+                className={`w-full px-3 py-3 border rounded-lg focus:outline-none focus:ring-2 resize-none transition-all duration-200 ${
+                  color === 'yellow' ? 'focus:ring-yellow-500 focus:border-yellow-500' :
+                  color === 'pink' ? 'focus:ring-pink-500 focus:border-pink-500' :
+                  'focus:ring-blue-500 focus:border-blue-500'
+                } ${item.trim() ? 'border-green-300 bg-green-50' : 'border-gray-300'}`}
+                rows={3}
+              />
+              {item.trim() && (
+                <div className="absolute top-2 right-2 text-green-500 text-xl animate-fadeIn">
+                  ✓
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       <div className="flex justify-between">
         <button
           onClick={onCancel}
-          className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+          className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
         >
           Cancel
         </button>
 
         <button
-          onClick={onComplete}
+          onClick={handleComplete}
           disabled={!canComplete}
-          className="px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          className={`px-6 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 ${
+            canComplete ? 'animate-pulse' : ''
+          }`}
         >
           Complete
         </button>

@@ -18,7 +18,7 @@ export const Chat: React.FC = () => {
   ]);
   const [showCrisisSupport, setShowCrisisSupport] = useState(false);
   
-  const { text: sttText, listening, isSupported: sttSupported, start: startSTT, reset: resetSTT } = useSTT();
+  const { text: sttText, listening, isSupported: sttSupported, start: startSTT, stop: stopSTT, reset: resetSTT } = useSTT();
   const { speak, speaking, isSupported: ttsSupported, stop: stopTTS } = useTTS();
   const { generateReply, loading: llmLoading, initEngine, engine } = useLLM();
   
@@ -72,11 +72,15 @@ export const Chat: React.FC = () => {
     }
   };
 
-  const handleSTTComplete = () => {
+  const handleSTTSend = () => {
     if (sttText.trim()) {
       sendMessage(sttText);
       resetSTT();
     }
+  };
+
+  const handleSTTClear = () => {
+    resetSTT();
   };
 
   const handleTextSubmit = (e: React.FormEvent) => {
@@ -158,7 +162,7 @@ export const Chat: React.FC = () => {
               listening={listening}
               isSupported={sttSupported}
               onStart={startSTT}
-              onStop={handleSTTComplete}
+              onStop={stopSTT}
               disabled={llmLoading}
             />
             {speaking && (
@@ -179,6 +183,8 @@ export const Chat: React.FC = () => {
               transcript={sttText}
               listening={listening}
               placeholder="Start speaking..."
+              onSend={handleSTTSend}
+              onClear={handleSTTClear}
             />
           </div>
         )}

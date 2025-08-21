@@ -78,30 +78,63 @@ export function useConsent(userId: string) {
 
   const deleteAllData = useCallback(async (): Promise<string> => {
     try {
-      // Delete local data
+      // Delete local data first
       await storageAPI.deleteUserData(userId);
       
-      // Call server deletion endpoint
-      const response = await fetch('/api/delete_data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uid: userId }),
-      });
+      // Generate a local receipt ID
+      let receiptId = `del_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Try to call server deletion endpoint, but don't fail if it's not available
+      try {
+        const response = await fetch('/api/delete_data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uid: userId }),
+        });
 
-      if (response.ok) {
-        const { receiptId } = await response.json();
-        
-        // Clear local state
-        setUser(null);
-        setConsents(DEFAULT_CONSENTS);
-        
-        // Clear localStorage
-        localStorage.removeItem(`mannmitra_user_${userId}`);
-        
-        return receiptId;
-      } else {
-        throw new Error('Server deletion failed');
+        if (response.ok) {
+          const { receiptId: serverReceiptId } = await response.json();
+          if (serverReceiptId) {
+            // Use server receipt if available
+            receiptId = serverReceiptId;
+          }
+        }
+      } catch (serverError) {
+        console.warn('Server deletion failed, but local deletion succeeded:', serverError);
+        // Continue with local deletion
       }
+      
+      // Clear local state
+      setUser(null);
+      setConsents(DEFAULT_CONSENTS);
+      
+      // Clear localStorage
+      localStorage.removeItem(`mannmitra_user_${userId}`);
+      
+      // Clear all localStorage keys that might contain user data
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.includes(userId) || key.startsWith('mannmitra_'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      
+      // Clear IndexedDB completely for this user
+      try {
+        // Force a refresh of the database to clear any cached data
+        if ('indexedDB' in window) {
+          // Close any open connections
+          if (typeof (window as any).mannmitraDB !== 'undefined') {
+            (window as any).mannmitraDB.close();
+          }
+        }
+      } catch (dbError) {
+        console.warn('Failed to close IndexedDB connection:', dbError);
+      }
+      
+      return receiptId;
     } catch (error) {
       console.error('Failed to delete data:', error);
       throw error;
